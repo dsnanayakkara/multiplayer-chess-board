@@ -2,6 +2,8 @@ import { Room, Player, RoomStatus } from './types';
 
 export class RoomManager {
   private rooms: Map<string, Room> = new Map();
+  private pendingDeletions: Map<string, NodeJS.Timeout> = new Map();
+  private readonly GRACE_PERIOD_MS = 120000; // 2 minutes
 
   /**
    * Generate a unique 6-character room code
@@ -57,6 +59,13 @@ export class RoomManager {
 
     if (room.status === 'ended') {
       throw new Error('Game has already ended');
+    }
+
+    // Cancel pending deletion if someone joins
+    if (this.pendingDeletions.has(roomId)) {
+      clearTimeout(this.pendingDeletions.get(roomId)!);
+      this.pendingDeletions.delete(roomId);
+      console.log(`Cancelled pending deletion for room ${roomId}`);
     }
 
     // Check if player already in room (reconnection scenario)
@@ -117,11 +126,24 @@ export class RoomManager {
 
     console.log(`${player.name} left room ${roomId}`);
 
-    // Clean up empty rooms or end game if not enough players
+    // Clean up empty rooms with grace period for waiting rooms
     if (room.players.length === 0) {
-      this.rooms.delete(roomId);
-      console.log(`Room ${roomId} deleted (empty)`);
+      if (room.status === 'waiting') {
+        // Grace period: Wait before deleting to allow reconnection
+        console.log(`Room ${roomId} is now empty (waiting). Scheduling deletion in ${this.GRACE_PERIOD_MS / 1000}s`);
+        const timeout = setTimeout(() => {
+          this.rooms.delete(roomId);
+          this.pendingDeletions.delete(roomId);
+          console.log(`Room ${roomId} deleted after grace period`);
+        }, this.GRACE_PERIOD_MS);
+        this.pendingDeletions.set(roomId, timeout);
+      } else {
+        // Active/ended games: delete immediately
+        this.rooms.delete(roomId);
+        console.log(`Room ${roomId} deleted (empty, ${room.status})`);
+      }
     } else if (room.status === 'active' && room.players.filter(p => p.role === 'player').length < 2) {
+      // End active games if not enough players
       room.status = 'ended';
       console.log(`Game ended in room ${roomId} (not enough players)`);
     }
@@ -145,5 +167,29 @@ export class RoomManager {
       room.status = 'ended';
       console.log(`Game ended in room ${roomId}`);
     }
+  }
+
+  /**
+   * Cancel pending deletion for a room (useful for reconnection)
+   */
+  cancelPendingDeletion(roomId: string): boolean {
+    if (this.pendingDeletions.has(roomId)) {
+      clearTimeout(this.pendingDeletions.get(roomId)!);
+      this.pendingDeletions.delete(roomId);
+      console.log(`Cancelled pending deletion for room ${roomId}`);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Clean up all pending deletions (for graceful shutdown)
+   */
+  cleanup(): void {
+    for (const timeout of this.pendingDeletions.values()) {
+      clearTimeout(timeout);
+    }
+    this.pendingDeletions.clear();
+    console.log('Cleaned up all pending room deletions');
   }
 }

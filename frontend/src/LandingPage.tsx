@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Socket } from 'socket.io-client';
 
 interface LandingPageProps {
@@ -11,6 +11,36 @@ export const LandingPage = ({ socket, onRoomJoined }: LandingPageProps) => {
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    // Listen for errors from server
+    const handleError = (data: { message: string; code?: string }) => {
+      setLoading(false);
+
+      // Provide contextual error messages based on error code
+      if (data.code === 'ROOM_NOT_FOUND') {
+        setError(
+          'Room not found. The host may have left before you joined, or the room code is incorrect. ' +
+          'Please ask them to create a new room or double-check the code.'
+        );
+      } else if (data.code === 'GAME_ENDED') {
+        setError(
+          'This game has already ended. Please create a new room or join a different one.'
+        );
+      } else {
+        // Fallback to default message
+        setError(data.message || 'An error occurred');
+      }
+    };
+
+    socket.on('error', handleError);
+
+    return () => {
+      socket.off('error', handleError);
+    };
+  }, [socket]);
 
   const handleCreateRoom = () => {
     if (!playerName.trim()) {
