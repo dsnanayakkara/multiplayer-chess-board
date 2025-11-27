@@ -46,7 +46,7 @@ io.on('connection', (socket) => {
       socket.emit('room-created', {
         roomId: room.id,
         players: room.players,
-        team: 'white',
+        color: 'white',
         gameState: gameEngine.getGameState(room.id),
       });
 
@@ -77,7 +77,7 @@ io.on('connection', (socket) => {
       socket.emit('room-joined', {
         roomId: room.id,
         players: room.players,
-        team: player.team,
+        color: player.color,
         role: player.role,
         gameState: gameEngine.getGameState(roomId),
         status: room.status,
@@ -89,15 +89,15 @@ io.on('connection', (socket) => {
         players: room.players,
       });
 
-      // If game just started (4 players), notify everyone
-      if (room.status === 'active' && room.players.length === 4) {
+      // If game just started (2 players), notify everyone
+      if (room.status === 'active' && room.players.length === 2) {
         io.to(roomId).emit('game-started', {
           gameState: gameEngine.getGameState(roomId),
           players: room.players,
         });
       }
 
-      console.log(`${playerName} joined room ${roomId} as ${player.role} (${player.team || 'spectator'})`);
+      console.log(`${playerName} joined room ${roomId} as ${player.role} (${player.color || 'spectator'})`);
     } catch (error) {
       socket.emit('error', {
         message: error instanceof Error ? error.message : 'Failed to join room',
@@ -128,14 +128,14 @@ io.on('connection', (socket) => {
         return;
       }
 
-      if (!player.team) {
-        socket.emit('error', { message: 'You are not assigned to a team' });
+      if (!player.color) {
+        socket.emit('error', { message: 'You are not assigned a color' });
         return;
       }
 
-      // Validate it's the player's team turn
-      if (!gameEngine.validateTurn(roomId, player.team)) {
-        socket.emit('error', { message: 'Not your team\'s turn' });
+      // Validate it's the player's turn
+      if (!gameEngine.validateTurn(roomId, player.color)) {
+        socket.emit('error', { message: 'Not your turn' });
         return;
       }
 
@@ -183,12 +183,12 @@ io.on('connection', (socket) => {
       const room = roomManager.getRoom(roomId);
       const player = roomManager.getPlayer(roomId, socket.id);
 
-      if (!room || !player || !player.team) {
+      if (!room || !player || !player.color) {
         socket.emit('error', { message: 'Invalid resignation request' });
         return;
       }
 
-      const { winner, result } = gameEngine.resign(roomId, player.team);
+      const { winner, result } = gameEngine.resign(roomId, player.color);
 
       io.to(roomId).emit('game-ended', {
         result,

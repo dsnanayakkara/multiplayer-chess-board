@@ -1,4 +1,4 @@
-export type Team = 'white' | 'black';
+export type Color = 'white' | 'black';
 export type PlayerRole = 'player' | 'spectator';
 export type RoomStatus = 'waiting' | 'active' | 'ended';
 export type GameResult = 'checkmate' | 'stalemate' | 'draw' | 'resignation';
@@ -6,7 +6,7 @@ export type GameResult = 'checkmate' | 'stalemate' | 'draw' | 'resignation';
 export interface Player {
   id: string;           // socket.id
   name: string;         // display name
-  team: Team | null;    // assigned team
+  color: Color | null;  // assigned color (white or black)
   role: PlayerRole;     // player or spectator
 }
 
@@ -26,7 +26,7 @@ export interface MoveRequest {
 
 export interface GameState {
   fen: string;
-  currentTurn: Team;
+  currentTurn: Color;
   isCheck: boolean;
   isCheckmate: boolean;
   isDraw: boolean;
