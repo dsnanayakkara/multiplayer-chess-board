@@ -67,7 +67,11 @@ io.on('connection', (socket) => {
       const player = roomManager.getPlayer(roomId, socket.id);
 
       if (!player) {
-        throw new Error('Failed to join room');
+        socket.emit('error', {
+          message: 'Failed to join room',
+          code: 'JOIN_FAILED'
+        });
+        return;
       }
 
       // Join socket room
@@ -99,8 +103,19 @@ io.on('connection', (socket) => {
 
       console.log(`${playerName} joined room ${roomId} as ${player.role} (${player.color || 'spectator'})`);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to join room';
+      let errorCode = 'JOIN_ERROR';
+
+      // Map specific error messages to error codes
+      if (errorMessage.includes('not found')) {
+        errorCode = 'ROOM_NOT_FOUND';
+      } else if (errorMessage.includes('already ended')) {
+        errorCode = 'GAME_ENDED';
+      }
+
       socket.emit('error', {
-        message: error instanceof Error ? error.message : 'Failed to join room',
+        message: errorMessage,
+        code: errorCode,
       });
     }
   });
