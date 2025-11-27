@@ -1,6 +1,72 @@
-# multiplayer-chess-board
-2v2 multiplayer chess game
-Functional requirements
+# Multiplayer Chess Board (2v2)
+
+A real-time 2v2 multiplayer chess game for web browsers. Teams of 2 players collaborate to play chess against each other.
+
+## Quick Start
+
+### Prerequisites
+- Node.js 18+ and npm
+
+### Installation & Running
+
+1. **Clone and setup:**
+```bash
+git clone <repository-url>
+cd multiplayer-chess-board
+```
+
+2. **Backend (Terminal 1):**
+```bash
+cd backend
+npm install
+npm run dev
+```
+Server runs on http://localhost:3001
+
+3. **Frontend (Terminal 2):**
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+App runs on http://localhost:5173
+
+4. **Play:**
+   - Open http://localhost:5173 in your browser
+   - Create a room and share the code with 3 friends
+   - First 2 players = White team, Next 2 = Black team
+   - Any player on the active team can make moves
+
+## Documentation
+
+- **[DESIGN.md](./DESIGN.md)** - Architecture, tech stack, and design decisions
+- **[IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)** - Jira-style tickets and sprint plan
+- **[DEVELOPMENT.md](./DEVELOPMENT.md)** - Development guide, API docs, and deployment
+
+## Features Implemented
+
+✅ Create/join rooms with unique codes
+✅ 2v2 team-based gameplay
+✅ Real-time move synchronization
+✅ Full chess rules validation (chess.js)
+✅ Checkmate/stalemate/draw detection
+✅ Resignation support
+✅ Spectator mode (5+ players)
+✅ Clean, responsive UI
+
+## Tech Stack
+
+- **Backend:** Node.js, Express, Socket.IO, chess.js, TypeScript
+- **Frontend:** React, Vite, react-chessboard, Socket.IO client, TypeScript
+- **Game Logic:** chess.js (battle-tested chess engine)
+- **Real-time:** Socket.IO (WebSocket)
+
+---
+
+## Requirements (Original Spec)
+
+### Functional requirements
 
 Join game (landing page → create or join a room).
 
