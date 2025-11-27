@@ -1,7 +1,7 @@
-# 2v2 Multiplayer Chess POC - Design Document
+# Multiplayer Chess POC - Design Document
 
 ## Overview
-Minimal viable 2v2 chess game for intranet use. Two teams (white/black), 2 players per team, collaborate on moves in real-time.
+Minimal viable multiplayer chess game for intranet use. Two players compete in standard chess with optional spectators.
 
 ## Architecture
 
@@ -28,20 +28,20 @@ Minimal viable 2v2 chess game for intranet use. Two teams (white/black), 2 playe
                                       - Broadcasting
 ```
 
-## Game Model (2v2 Mechanics)
+## Game Model
 
-### Team Structure
-- **White Team**: 2 players (both can see board, discuss moves)
-- **Black Team**: 2 players (both can see board, discuss moves)
-- **Move Authority**: ANY player from active team can submit move
-- **Turn-based**: White team → Black team → White team...
+### Player Structure
+- **White Player**: First player to join the room
+- **Black Player**: Second player to join the room
+- **Spectators**: Players 3+ join as view-only observers
+- **Turn-based**: Players alternate moves (white → black → white...)
 
 ### Game Flow
-1. Host creates room → receives room code
-2. 3 other players join with room code
-3. Server assigns teams (first 2 = white, next 2 = black)
-4. Game starts when 4 players connected
-5. Players make moves, server validates and broadcasts
+1. Player 1 creates room → receives room code → assigned white
+2. Player 2 joins with room code → assigned black
+3. Game starts automatically when 2 players connected
+4. Players alternate making moves
+5. Server validates and broadcasts each move
 6. Game ends on checkmate/draw/resignation
 
 ## Data Models
@@ -49,11 +49,9 @@ Minimal viable 2v2 chess game for intranet use. Two teams (white/black), 2 playe
 ### Room
 ```typescript
 {
-  roomId: string,
-  players: Player[],  // max 4
-  gameState: Chess,   // chess.js instance
+  id: string,
+  players: Player[],  // First 2 are players, rest are spectators
   status: 'waiting' | 'active' | 'ended',
-  currentTurn: 'white' | 'black',
   createdAt: timestamp
 }
 ```
@@ -61,9 +59,9 @@ Minimal viable 2v2 chess game for intranet use. Two teams (white/black), 2 playe
 ### Player
 ```typescript
 {
-  playerId: string,   // socket.id
+  id: string,         // socket.id
   name: string,       // display name
-  team: 'white' | 'black' | null,
+  color: 'white' | 'black' | null,  // assigned color
   role: 'player' | 'spectator'
 }
 ```
@@ -78,6 +76,18 @@ Minimal viable 2v2 chess game for intranet use. Two teams (white/black), 2 playe
 }
 ```
 
+### Game State
+```typescript
+{
+  fen: string,        // Board position in FEN notation
+  currentTurn: 'white' | 'black',
+  isCheck: boolean,
+  isCheckmate: boolean,
+  isDraw: boolean,
+  lastMove?: { from: string; to: string }
+}
+```
+
 ## WebSocket Events
 
 ### Client → Server
@@ -87,13 +97,14 @@ Minimal viable 2v2 chess game for intranet use. Two teams (white/black), 2 playe
 - `resign` → { roomId }
 
 ### Server → Client
-- `room-created` → { roomId }
-- `room-joined` → { roomId, players, team, gameState }
-- `player-joined` → { player }
-- `game-started` → { gameState }
-- `move-made` → { move, gameState, currentTurn }
+- `room-created` → { roomId, players, color, gameState }
+- `room-joined` → { roomId, players, color, role, gameState, status }
+- `player-joined` → { player, players }
+- `game-started` → { gameState, players }
+- `move-made` → { move, gameState, playerName }
 - `invalid-move` → { error }
-- `game-ended` → { result, reason }
+- `game-ended` → { result, winner, reason }
+- `player-left` → { player, players, status }
 - `error` → { message }
 
 ## Key Design Decisions
@@ -102,11 +113,13 @@ Minimal viable 2v2 chess game for intranet use. Two teams (white/black), 2 playe
 - Players provide display name only
 - Socket.id used as playerId
 - Trust all clients (intranet assumption)
+- Acceptable for POC environment
 
 ### 2. In-Memory State
 - Room data stored in Map (roomId → Room)
 - No persistence between server restarts
 - Acceptable for POC
+- Simple and fast
 
 ### 3. Strong Consistency
 - Server is single source of truth
@@ -114,57 +127,129 @@ Minimal viable 2v2 chess game for intranet use. Two teams (white/black), 2 playe
 - Server broadcasts authoritative state
 - Clients render received state (no optimistic updates for POC)
 
-### 4. Team Move Authority
-- ANY player on active team can submit move
-- No turn-taking within team (simplest approach)
-- Teams self-coordinate via chat/voice (out of scope)
+### 4. Player Assignment
+- First player to join room = white
+- Second player to join room = black
+- Players 3+ = spectators (view-only)
+- Simple, deterministic, fair
 
 ### 5. Game Start Condition
-- Game auto-starts when 4 players join
-- First 2 join → white team
-- Next 2 join → black team
+- Game auto-starts when 2 players join
+- No manual "ready" button needed
+- Immediate gameplay
 
 ## Validation & Concurrency
 
 ### Move Validation
 - chess.js validates all moves
-- Server checks: correct turn, legal move, correct team
+- Server checks: correct turn, legal move, correct player
 - Reject if validation fails
+- Return specific error messages
 
 ### Concurrency Control
 - Single-threaded Node.js event loop
 - Move processing is sequential
-- Race condition: if 2 teammates submit simultaneously, first wins
-- No locking needed (event loop serializes)
+- No race conditions (event loop serializes requests)
+- No locking needed
+
+### Turn Enforcement
+- Only the player whose color matches currentTurn can move
+- Server validates player identity and turn
+- Spectators cannot make moves
 
 ## End Game Detection
-- chess.js detects: checkmate, stalemate, draw
-- Server detects: resignation
-- Timeout detection: NOT in POC (future enhancement)
 
-## Spectator Mode (Optional - Phase 2)
-- Join as 5+ player → spectator role
-- Receive broadcasts, cannot make moves
-- Lower priority for MVP
+### Automatic Detection
+- chess.js detects: checkmate, stalemate, draw (threefold repetition, insufficient material)
+- Server broadcasts result to all participants
+
+### Manual Termination
+- Player resignation
+- Player disconnect (game ends if < 2 players remain)
+
+### Timeout Detection
+- NOT in POC (future enhancement)
+- Would require chess clocks
+
+## Spectator Mode
+
+### Implementation
+- Players joining after 2 slots filled become spectators
+- Spectators receive all game state broadcasts
+- Spectators cannot make moves (server validates)
+- Spectators appear in separate list in UI
+
+### Limitations (POC)
+- No spectator chat
+- No spectator-specific features
+- Simple view-only implementation
 
 ## Non-Goals (Out of Scope)
+
+### Phase 1 Exclusions
 - User accounts / authentication
 - Persistent game history
-- Matchmaking / ELO
-- Chat (use external voice/chat)
-- Reconnection handling
 - Move history replay
-- Time controls / clocks
+- Time controls / chess clocks
+- Matchmaking / ELO ratings
+- In-game chat (use external voice/chat)
+- Reconnection handling
+- Mobile apps
 
 ## Deployment (POC)
-- Single Node.js server
+
+### Infrastructure
+- Single Node.js server process
 - Can handle ~50 games (100 users) easily
 - Deploy on intranet VM or Docker container
 - Serve static React build from Express
 
+### Configuration
+- PORT environment variable (default: 3001)
+- No database configuration needed
+- No external service dependencies
+
 ## Success Metrics (POC)
-- 4 players can join a room
-- Teams can make valid moves
+
+### Functional
+- 2 players can join a room
+- Players can make valid moves
 - Game state updates in real-time
-- Game ends correctly on checkmate/draw
+- Game ends correctly on checkmate/draw/resignation
+- Spectators can watch games
+
+### Performance
 - Move latency < 500ms on LAN
+- Support 50+ concurrent games
+- No memory leaks during extended play
+
+### Usability
+- Intuitive UI requiring no training
+- Clear error messages
+- Room codes easy to share
+
+## Security Considerations (POC)
+
+### Known Limitations
+- No input sanitization (intranet trust model)
+- No rate limiting
+- No authentication/authorization
+- Socket.id is predictable
+
+### Future Improvements
+- Add input validation
+- Implement rate limiting
+- Add authentication layer
+- Use secure session tokens
+
+## Scalability Path (Future)
+
+### When Needed
+- Add Redis for session state (horizontal scaling)
+- Add database for persistence
+- Implement load balancing
+- Add WebSocket sticky sessions
+
+### Not Needed for POC
+- Current in-memory approach sufficient
+- Premature optimization avoided

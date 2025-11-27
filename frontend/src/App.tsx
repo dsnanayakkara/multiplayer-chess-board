@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSocket } from './useSocket';
 import { LandingPage } from './LandingPage';
 import { GameBoard } from './GameBoard';
-import { RoomData, Player, GameState, Team, RoomStatus } from './types';
+import { RoomData, Player, GameState, Color, RoomStatus } from './types';
 
 function App() {
   const { socket, connected } = useSocket();
@@ -13,22 +13,22 @@ function App() {
     if (!socket) return;
 
     // Listen for room events
-    socket.on('room-created', (data: { roomId: string; players: Player[]; team: Team; gameState: GameState }) => {
+    socket.on('room-created', (data: { roomId: string; players: Player[]; color: Color; gameState: GameState }) => {
       setRoomData({
         roomId: data.roomId,
         players: data.players,
-        team: data.team,
+        color: data.color,
         role: 'player',
         gameState: data.gameState,
         status: 'waiting',
       });
     });
 
-    socket.on('room-joined', (data: { roomId: string; players: Player[]; team: Team | null; role: 'player' | 'spectator'; gameState: GameState; status: RoomStatus }) => {
+    socket.on('room-joined', (data: { roomId: string; players: Player[]; color: Color | null; role: 'player' | 'spectator'; gameState: GameState; status: RoomStatus }) => {
       setRoomData({
         roomId: data.roomId,
         players: data.players,
-        team: data.team,
+        color: data.color,
         role: data.role,
         gameState: data.gameState,
         status: data.status,
@@ -69,7 +69,7 @@ function App() {
       socket={socket}
       roomId={roomData.roomId}
       players={roomData.players}
-      myTeam={roomData.team}
+      myColor={roomData.color}
       gameState={roomData.gameState}
       status={roomData.status}
     />

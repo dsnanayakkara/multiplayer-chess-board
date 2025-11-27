@@ -1,23 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Socket } from 'socket.io-client';
-import { Player, GameState, Team, RoomStatus, GameResult } from './types';
+import { Player, GameState, Color, RoomStatus, GameResult } from './types';
 
 interface GameBoardProps {
   socket: Socket | null;
   roomId: string;
   players: Player[];
-  myTeam: Team | null;
+  myColor: Color | null;
   gameState: GameState;
   status: RoomStatus;
 }
 
-export const GameBoard = ({ socket, roomId, players, myTeam, gameState, status }: GameBoardProps) => {
+export const GameBoard = ({ socket, roomId, players, myColor, gameState, status }: GameBoardProps) => {
   const [fen, setFen] = useState(gameState.fen);
-  const [currentTurn, setCurrentTurn] = useState<Team>(gameState.currentTurn);
+  const [currentTurn, setCurrentTurn] = useState<Color>(gameState.currentTurn);
   const [playerList, setPlayerList] = useState<Player[]>(players);
   const [gameStatus, setGameStatus] = useState<RoomStatus>(status);
-  const [gameResult, setGameResult] = useState<{ result: GameResult; winner: Team | null } | null>(null);
+  const [gameResult, setGameResult] = useState<{ result: GameResult; winner: Color | null } | null>(null);
   const [error, setError] = useState('');
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | undefined>(gameState.lastMove);
 
@@ -48,7 +48,7 @@ export const GameBoard = ({ socket, roomId, players, myTeam, gameState, status }
       setGameStatus(data.status);
     });
 
-    socket.on('game-ended', (data: { result: GameResult; winner?: Team; reason?: string }) => {
+    socket.on('game-ended', (data: { result: GameResult; winner?: Color; reason?: string }) => {
       setGameStatus('ended');
       setGameResult({ result: data.result, winner: data.winner || null });
     });
@@ -79,8 +79,8 @@ export const GameBoard = ({ socket, roomId, players, myTeam, gameState, status }
       return false;
     }
 
-    if (!myTeam || currentTurn !== myTeam) {
-      setError("Not your team's turn");
+    if (!myColor || currentTurn !== myColor) {
+      setError("Not your turn");
       setTimeout(() => setError(''), 2000);
       return false;
     }
@@ -101,7 +101,7 @@ export const GameBoard = ({ socket, roomId, players, myTeam, gameState, status }
   };
 
   const handleResign = () => {
-    if (!socket || !myTeam) return;
+    if (!socket || !myColor) return;
 
     const confirmed = window.confirm('Are you sure you want to resign?');
     if (confirmed) {
@@ -109,11 +109,11 @@ export const GameBoard = ({ socket, roomId, players, myTeam, gameState, status }
     }
   };
 
-  const whiteTeam = playerList.filter(p => p.team === 'white');
-  const blackTeam = playerList.filter(p => p.team === 'black');
+  const whitePlayer = playerList.find(p => p.color === 'white');
+  const blackPlayer = playerList.find(p => p.color === 'black');
   const spectators = playerList.filter(p => p.role === 'spectator');
 
-  const boardOrientation = myTeam === 'black' ? 'black' : 'white';
+  const boardOrientation = myColor === 'black' ? 'black' : 'white';
 
   return (
     <div style={styles.container}>
@@ -123,55 +123,59 @@ export const GameBoard = ({ socket, roomId, players, myTeam, gameState, status }
           {gameStatus === 'waiting' && (
             <div style={styles.waiting}>
               <p>Waiting for players...</p>
-              <p style={styles.playerCount}>{playerList.length}/4 players</p>
+              <p style={styles.playerCount}>{playerList.filter(p => p.role === 'player').length}/2 players</p>
             </div>
           )}
         </div>
 
-        <div style={styles.teams}>
-          <div style={styles.team}>
-            <h3 style={{ ...styles.teamTitle, color: '#333' }}>⚪ White Team</h3>
-            {whiteTeam.map(p => (
-              <div
-                key={p.id}
-                style={{
-                  ...styles.player,
-                  ...(currentTurn === 'white' && gameStatus === 'active' ? styles.activePlayer : {}),
-                }}
-              >
-                {p.name} {p.id === socket?.id && '(You)'}
+        <div style={styles.players}>
+          <div style={styles.playerCard}>
+            <h3 style={styles.playerTitle}>
+              ⚪ White
+              {currentTurn === 'white' && gameStatus === 'active' && (
+                <span style={styles.turnBadge}>Active</span>
+              )}
+            </h3>
+            {whitePlayer ? (
+              <div style={styles.playerName}>
+                {whitePlayer.name}
+                {whitePlayer.id === socket?.id && ' (You)'}
               </div>
-            ))}
+            ) : (
+              <div style={styles.emptySlot}>Waiting for player...</div>
+            )}
           </div>
 
-          <div style={styles.team}>
-            <h3 style={{ ...styles.teamTitle, color: '#333' }}>⚫ Black Team</h3>
-            {blackTeam.map(p => (
-              <div
-                key={p.id}
-                style={{
-                  ...styles.player,
-                  ...(currentTurn === 'black' && gameStatus === 'active' ? styles.activePlayer : {}),
-                }}
-              >
-                {p.name} {p.id === socket?.id && '(You)'}
+          <div style={styles.playerCard}>
+            <h3 style={styles.playerTitle}>
+              ⚫ Black
+              {currentTurn === 'black' && gameStatus === 'active' && (
+                <span style={styles.turnBadge}>Active</span>
+              )}
+            </h3>
+            {blackPlayer ? (
+              <div style={styles.playerName}>
+                {blackPlayer.name}
+                {blackPlayer.id === socket?.id && ' (You)'}
               </div>
-            ))}
+            ) : (
+              <div style={styles.emptySlot}>Waiting for player...</div>
+            )}
           </div>
 
           {spectators.length > 0 && (
-            <div style={styles.team}>
-              <h3 style={styles.teamTitle}>👁 Spectators</h3>
+            <div style={styles.playerCard}>
+              <h3 style={styles.playerTitle}>👁 Spectators ({spectators.length})</h3>
               {spectators.map(p => (
-                <div key={p.id} style={styles.player}>
-                  {p.name}
+                <div key={p.id} style={styles.spectatorName}>
+                  {p.name} {p.id === socket?.id && '(You)'}
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {gameStatus === 'active' && myTeam && (
+        {gameStatus === 'active' && myColor && (
           <button onClick={handleResign} style={styles.resignButton}>
             Resign
           </button>
@@ -181,10 +185,12 @@ export const GameBoard = ({ socket, roomId, players, myTeam, gameState, status }
       <div style={styles.boardContainer}>
         {gameStatus === 'active' && (
           <div style={styles.turnIndicator}>
-            {currentTurn === myTeam ? (
-              <span style={styles.yourTurn}>🟢 Your team's turn</span>
+            {currentTurn === myColor ? (
+              <span style={styles.yourTurn}>🟢 Your turn</span>
             ) : (
-              <span style={styles.opponentTurn}>⏳ Opponent's turn</span>
+              <span style={styles.opponentTurn}>
+                ⏳ {currentTurn === 'white' ? whitePlayer?.name || 'White' : blackPlayer?.name || 'Black'}'s turn
+              </span>
             )}
           </div>
         )}
@@ -215,14 +221,16 @@ export const GameBoard = ({ socket, roomId, players, myTeam, gameState, status }
             <div style={styles.modalContent}>
               <h2>Game Over</h2>
               {gameResult.result === 'checkmate' && (
-                <p>Checkmate! {gameResult.winner} team wins!</p>
+                <p>
+                  Checkmate! {gameResult.winner === 'white' ? whitePlayer?.name || 'White' : blackPlayer?.name || 'Black'} wins!
+                </p>
               )}
               {gameResult.result === 'stalemate' && <p>Stalemate! Game is a draw.</p>}
               {gameResult.result === 'draw' && <p>Draw!</p>}
               {gameResult.result === 'resignation' && (
                 <p>
                   {gameResult.winner
-                    ? `${gameResult.winner} team wins by resignation!`
+                    ? `${gameResult.winner === 'white' ? whitePlayer?.name || 'White' : blackPlayer?.name || 'Black'} wins by resignation!`
                     : 'Game ended by resignation'}
                 </p>
               )}
@@ -275,32 +283,56 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#667eea',
     marginTop: '8px',
   },
-  teams: {
+  players: {
     display: 'flex',
     flexDirection: 'column',
     gap: '16px',
   },
-  team: {
+  playerCard: {
     background: 'white',
     borderRadius: '12px',
     padding: '16px',
   },
-  teamTitle: {
+  playerTitle: {
     fontSize: '16px',
     fontWeight: 'bold',
     marginBottom: '12px',
+    color: '#333',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
   },
-  player: {
+  turnBadge: {
+    fontSize: '12px',
+    fontWeight: '600',
+    padding: '4px 8px',
+    background: '#4caf50',
+    color: 'white',
+    borderRadius: '4px',
+    marginLeft: 'auto',
+  },
+  playerName: {
+    padding: '12px',
+    background: '#e3f2fd',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#1976d2',
+  },
+  emptySlot: {
+    padding: '12px',
+    background: '#f5f5f5',
+    borderRadius: '6px',
+    fontSize: '14px',
+    color: '#999',
+    fontStyle: 'italic',
+  },
+  spectatorName: {
     padding: '8px 12px',
     background: '#f5f5f5',
     borderRadius: '6px',
     marginBottom: '8px',
     fontSize: '14px',
-  },
-  activePlayer: {
-    background: '#e3f2fd',
-    border: '2px solid #2196f3',
-    fontWeight: '600',
   },
   resignButton: {
     padding: '12px',

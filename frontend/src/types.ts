@@ -1,4 +1,4 @@
-export type Team = 'white' | 'black';
+export type Color = 'white' | 'black';
 export type PlayerRole = 'player' | 'spectator';
 export type RoomStatus = 'waiting' | 'active' | 'ended';
 export type GameResult = 'checkmate' | 'stalemate' | 'draw' | 'resignation';
@@ -6,13 +6,13 @@ export type GameResult = 'checkmate' | 'stalemate' | 'draw' | 'resignation';
 export interface Player {
   id: string;
   name: string;
-  team: Team | null;
+  color: Color | null;
   role: PlayerRole;
 }
 
 export interface GameState {
   fen: string;
-  currentTurn: Team;
+  currentTurn: Color;
   isCheck: boolean;
   isCheckmate: boolean;
   isDraw: boolean;
@@ -22,7 +22,7 @@ export interface GameState {
 export interface RoomData {
   roomId: string;
   players: Player[];
-  team: Team | null;
+  color: Color | null;
   role?: PlayerRole;
   gameState: GameState;
   status: RoomStatus;

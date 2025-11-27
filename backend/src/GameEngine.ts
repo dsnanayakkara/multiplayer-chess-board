@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js';
-import { Team, GameState, GameResult } from './types';
+import { Color, GameState, GameResult } from './types';
 
 export class GameEngine {
   private games: Map<string, Chess> = new Map();
@@ -96,20 +96,20 @@ export class GameEngine {
   }
 
   /**
-   * Validate if a team can make a move
+   * Validate if a player can make a move
    */
-  validateTurn(roomId: string, team: Team): boolean {
+  validateTurn(roomId: string, color: Color): boolean {
     const game = this.getGame(roomId);
     const currentTurn = game.turn() === 'w' ? 'white' : 'black';
-    return currentTurn === team;
+    return currentTurn === color;
   }
 
   /**
    * Get game result for resignation
    */
-  resign(roomId: string, team: Team): { winner: Team; result: GameResult } {
+  resign(roomId: string, color: Color): { winner: Color; result: GameResult } {
     return {
-      winner: team === 'white' ? 'black' : 'white',
+      winner: color === 'white' ? 'black' : 'white',
       result: 'resignation',
     };
   }

@@ -1,6 +1,6 @@
-# Multiplayer Chess Board (2v2)
+# Multiplayer Chess
 
-A real-time 2v2 multiplayer chess game for web browsers. Teams of 2 players collaborate to play chess against each other.
+A real-time multiplayer chess game for web browsers with spectator support.
 
 ## Quick Start
 
@@ -34,9 +34,9 @@ App runs on http://localhost:5173
 
 4. **Play:**
    - Open http://localhost:5173 in your browser
-   - Create a room and share the code with 3 friends
-   - First 2 players = White team, Next 2 = Black team
-   - Any player on the active team can make moves
+   - Create a room and share the code with a friend
+   - First player gets white, second gets black
+   - Additional players (3+) join as spectators
 
 ## Documentation
 
@@ -47,12 +47,12 @@ App runs on http://localhost:5173
 ## Features Implemented
 
 ✅ Create/join rooms with unique codes
-✅ 2v2 team-based gameplay
+✅ 1v1 multiplayer gameplay
 ✅ Real-time move synchronization
 ✅ Full chess rules validation (chess.js)
 ✅ Checkmate/stalemate/draw detection
 ✅ Resignation support
-✅ Spectator mode (5+ players)
+✅ Spectator mode (3+ players)
 ✅ Clean, responsive UI
 
 ## Tech Stack
@@ -64,72 +64,186 @@ App runs on http://localhost:5173
 
 ---
 
-## Requirements (Original Spec)
+## System Requirements
 
-### Functional requirements
+### 1. Functional Requirements
 
-Join game (landing page → create or join a room).
+#### FR-1: Room Management
+- **FR-1.1**: Users shall be able to create a new game room with a unique 6-character alphanumeric code
+- **FR-1.2**: Users shall be able to join an existing room using a room code
+- **FR-1.3**: The system shall assign white to the first player and black to the second player
+- **FR-1.4**: The system shall allow additional users (3+) to join as spectators with view-only access
 
-Create a match (host creates a private room / public lobby).
+#### FR-2: Game Play
+- **FR-2.1**: The system shall enforce standard chess rules for all moves
+- **FR-2.2**: The system shall validate that only the player whose turn it is can make a move
+- **FR-2.3**: The system shall broadcast all moves to all participants in real-time
+- **FR-2.4**: The system shall support pawn promotion (auto-promote to queen)
+- **FR-2.5**: The system shall allow players to resign from the game
 
-Join a match (by room code or join lobby).
+#### FR-3: Game State Management
+- **FR-3.1**: The system shall detect and announce checkmate conditions
+- **FR-3.2**: The system shall detect and announce stalemate conditions
+- **FR-3.3**: The system shall detect and announce draw conditions (threefold repetition, insufficient material)
+- **FR-3.4**: The system shall maintain game state on the server as the single source of truth
 
-Make a move (submit move, server validates legal move).
+#### FR-4: User Interface
+- **FR-4.1**: The UI shall display the current board position
+- **FR-4.2**: The UI shall indicate whose turn it is
+- **FR-4.3**: The UI shall show both players' names
+- **FR-4.4**: The UI shall display the room code for sharing
+- **FR-4.5**: The UI shall show game result when the game ends
 
-Real-time update/broadcast board state to opponent(s).
+#### FR-5: Session Management (POC Scope)
+- **FR-5.1**: No user authentication is required
+- **FR-5.2**: No persistent storage beyond active sessions
+- **FR-5.3**: Players are identified by display name only
 
-End game detection (checkmate, draw, resignation, timeout).
+### 2. Non-Functional Requirements
 
-Basic spectator mode (optional) — view-only.
+#### NFR-1: Performance
+- **NFR-1.1**: Move latency shall be under 500ms on local network
+- **NFR-1.2**: The system shall support up to 100 concurrent users (~50 simultaneous games)
 
-POC: no accounts/login, no persistence beyond active session (but support minimal history if desired).
+#### NFR-2: Consistency
+- **NFR-2.1**: The server shall be the authoritative source for all game state
+- **NFR-2.2**: All move validation shall occur server-side
 
-Non-functional requirements (POC / small)
+#### NFR-3: Availability
+- **NFR-3.1**: The system shall be available during testing periods
+- **NFR-3.2**: Graceful degradation is acceptable for this POC
 
-Target concurrency: ≤100 users total (≈50 simultaneous games worst case).
+#### NFR-4: Usability
+- **NFR-4.1**: The UI shall be intuitive and require no training
+- **NFR-4.2**: The system shall provide clear error messages for invalid actions
 
-Latency: low (sub-second for moves).
+#### NFR-5: Development Priorities
+- **NFR-5.1**: Simplicity and rapid delivery are prioritized over premature optimization
+- **NFR-5.2**: KISS (Keep It Simple, Stupid) and YAGNI (You Aren't Gonna Need It) principles shall be followed
 
-Consistency: strong consistency for game state (single source of truth).
+### 3. System Actors
 
-Availability: moderate — should be up during evenings; graceful recovery okay.
+| Actor | Description |
+|-------|-------------|
+| **Player** | Human user playing chess in a web browser |
+| **Spectator** | Human user viewing a game without playing |
+| **Web Client** | Browser-based UI application |
+| **Game Server** | Backend server managing authoritative game state and validation |
+| **WebSocket Server** | Real-time bidirectional communication layer |
 
-Simplicity and rapid delivery prioritized over premature scaling.
+### 4. Key Use Cases
 
-Actors
+#### UC-1: Create and Join Game
 
-Player (human in browser)
+**Primary Actor**: Player
 
-Opponent (another player)
+**Preconditions**: User has access to the web application
 
-Web Client (browser UI)
+**Main Flow**:
+1. Player navigates to landing page
+2. Player enters display name
+3. Player creates a new room OR enters an existing room code
+4. System assigns player a color (white/black) or spectator role
+5. System displays waiting screen if second player hasn't joined
+6. Game starts automatically when 2 players are present
 
-Game Server (authoritative game state + validator)
+**Postconditions**: Player is in an active or waiting game room
 
-WebSocket Broker or Server (real-time messaging)
+#### UC-2: Make a Move
 
-Optional DB (for persistent history / POC telemetry)
+**Primary Actor**: Player
 
-High-level use case (choose one to walk through)
+**Preconditions**:
+- Game is active
+- It is the player's turn
 
-Use case: Player makes a move
+**Main Flow**:
+1. Player drags and drops a piece on the chessboard UI
+2. Client sends move to server via WebSocket: `{roomId, from, to, promotion?}`
+3. Server validates:
+   - Is it the player's turn?
+   - Is the move legal per chess rules?
+4. If valid:
+   - Server updates game state
+   - Server broadcasts new state to all clients
+   - Server checks for end conditions
+5. If invalid:
+   - Server sends error message to client
+   - Client displays error to player
 
-Player A makes move in UI and clicks “Submit”.
+**Postconditions**: Board state is updated or error is displayed
 
-Client sends move to Game Server via WebSocket: {gameId, from, to, promotion?}.
+#### UC-3: End Game
 
-Game Server checks: is it Player A’s turn? Is move legal (using move validator / chess library)?
+**Primary Actor**: System
 
-If legal: server updates authoritative board state, increments move number, checks end conditions, persists move (optional), emits update to both clients (opponent + player) via WebSocket.
+**Preconditions**: Game is active
 
-If illegal: server responds with error and client shows message.
+**Triggers**:
+- Checkmate is detected
+- Stalemate/draw is detected
+- Player resigns
+- Player disconnects
 
-If game ended, server broadcasts final state and reason.
+**Main Flow**:
+1. System detects end condition
+2. System broadcasts game result to all participants
+3. System marks room as ended
+4. UI displays result modal with option to start new game
 
-Activity / sequence (verbal / short)
+**Postconditions**: Game is ended and result is displayed
 
-Client connects → opens WebSocket → registers gameId and clientId.
+### 5. System Architecture Overview
 
-On create: server creates gameId, initial board, assigns white/black, returns room code.
+```
+┌─────────────┐      WebSocket      ┌──────────────┐
+│   Browser   │◄────────────────────►│ Game Server  │
+│  (React)    │      Socket.IO      │  (Node.js)   │
+└─────────────┘                      └──────────────┘
+     │                                      │
+     │                                      │
+  UI Layer                            Game Engine
+  - Chessboard (react-chessboard)    - Room Manager
+  - Room Join/Create                 - Chess Rules (chess.js)
+  - Real-time Updates                - Move Validation
+                                     - State Management
+```
 
-On move: client → WS → server validates → server updates → server → WS broadcast to both clients.
+### 6. Data Flow: Move Execution
+
+```
+Player makes move
+    ↓
+Client validates basic conditions (is it my turn?)
+    ↓
+Send via WebSocket: {roomId, from, to, promotion}
+    ↓
+Server receives and validates:
+  - Room exists?
+  - Player authorized?
+  - Player's turn?
+  - Move legal? (chess.js)
+    ↓
+If valid:                          If invalid:
+  - Update game state                - Send error
+  - Check win conditions             - Client shows message
+  - Broadcast to all clients
+  - Send confirmation
+    ↓
+All clients update board display
+```
+
+### 7. Out of Scope (Phase 1)
+
+The following features are explicitly out of scope for this POC:
+
+- User authentication and accounts
+- Persistent game history or database
+- Move history replay
+- Time controls / chess clocks
+- Player ratings / ELO system
+- Matchmaking
+- In-game chat
+- Move hints or analysis
+- Reconnection handling
+- Mobile native apps

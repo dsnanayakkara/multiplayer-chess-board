@@ -28,7 +28,7 @@ export class RoomManager {
     const host: Player = {
       id: playerId,
       name: playerName,
-      team: 'white', // First player gets white
+      color: 'white', // First player gets white
       role: 'player',
     };
 
@@ -65,32 +65,32 @@ export class RoomManager {
       return room;
     }
 
-    // Determine role and team
-    let team = null;
+    // Determine role and color
+    let color = null;
     let role: 'player' | 'spectator' = 'spectator';
 
-    if (room.players.length < 4) {
+    if (room.players.length < 2) {
       role = 'player';
-      // First 2 players = white, next 2 = black
-      team = room.players.length < 2 ? 'white' : 'black';
+      // First player = white (already in room), second player = black
+      color = 'black';
     }
 
     const newPlayer: Player = {
       id: playerId,
       name: playerName,
-      team,
+      color,
       role,
     };
 
     room.players.push(newPlayer);
 
-    // Start game when 4 players joined
-    if (room.players.length === 4 && room.status === 'waiting') {
+    // Start game when 2 players joined
+    if (room.players.length === 2 && room.status === 'waiting') {
       room.status = 'active';
       console.log(`Game started in room ${roomId}`);
     }
 
-    console.log(`${playerName} joined room ${roomId} as ${role} (${team || 'spectator'})`);
+    console.log(`${playerName} joined room ${roomId} as ${role} (${color || 'spectator'})`);
 
     return room;
   }

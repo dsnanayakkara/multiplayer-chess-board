@@ -56,8 +56,8 @@ export const LandingPage = ({ socket, onRoomJoined }: LandingPageProps) => {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h1 style={styles.title}>2v2 Multiplayer Chess</h1>
-        <p style={styles.subtitle}>Team up and play chess together!</p>
+        <h1 style={styles.title}>Multiplayer Chess</h1>
+        <p style={styles.subtitle}>Play chess online with friends!</p>
 
         <div style={styles.form}>
           <input
@@ -109,9 +109,10 @@ export const LandingPage = ({ socket, onRoomJoined }: LandingPageProps) => {
           <h3>How to Play:</h3>
           <ul style={styles.list}>
             <li>Create a room or join with a code</li>
-            <li>Wait for 4 players to join (2 per team)</li>
-            <li>White team (first 2) vs Black team (next 2)</li>
-            <li>Any player on the active team can make a move</li>
+            <li>Wait for 2 players to join</li>
+            <li>First player gets white, second gets black</li>
+            <li>Take turns making moves</li>
+            <li>Spectators (3+) can watch the game</li>
           </ul>
         </div>
       </div>
