@@ -8,6 +8,7 @@ import { meRoute } from './auth/routes/meRoute';
 import { magicLinkStartRoute } from './auth/routes/magicLinkStartRoute';
 import { magicLinkVerifyRoute } from './auth/routes/magicLinkVerifyRoute';
 import { logoutRoute } from './auth/routes/logoutRoute';
+import { csrfRoute } from './auth/routes/csrfRoute';
 import { errorHandler } from './middleware/errorHandler';
 
 export const createApp = (env: AppEnv = parseEnv(process.env)) => {
@@ -20,6 +21,7 @@ export const createApp = (env: AppEnv = parseEnv(process.env)) => {
   app.use(express.json());
   app.use(sessionMiddleware());
   app.use('/api/auth', meRoute);
+  app.use('/api/auth', csrfRoute);
   app.use('/api/auth', magicLinkStartRoute);
   app.use('/api/auth', magicLinkVerifyRoute);
   app.use('/api/auth', logoutRoute);

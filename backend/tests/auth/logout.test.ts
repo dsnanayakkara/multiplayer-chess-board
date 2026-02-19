@@ -14,7 +14,10 @@ describe('POST /api/auth/logout', () => {
 
     await agent.post('/api/auth/magic-link/verify').send({ token });
 
-    const logoutRes = await agent.post('/api/auth/logout');
+    const csrfRes = await agent.get('/api/auth/csrf');
+    const logoutRes = await agent
+      .post('/api/auth/logout')
+      .set('x-csrf-token', csrfRes.body.token);
     expect(logoutRes.status).toBe(200);
     expect(logoutRes.body.ok).toBe(true);
 
