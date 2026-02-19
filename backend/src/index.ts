@@ -1,40 +1,78 @@
-import express from 'express';
 import { createServer } from 'http';
+import { randomUUID } from 'crypto';
 import { Server } from 'socket.io';
-import cors from 'cors';
-import path from 'path';
 import { RoomManager } from './RoomManager';
 import { GameEngine } from './GameEngine';
 import { MoveRequest } from './types';
+import { createApp } from './app';
+import { parseEnv } from './config/env';
+import { SessionIdentity } from './auth/types';
+import { sharedSessionRepository } from './auth/session/sessionMiddleware';
 
-const app = express();
+const env = parseEnv(process.env);
+const app = createApp(env);
 const httpServer = createServer(app);
-
-// CORS for development
-app.use(cors());
-
-// Serve static files from frontend build (for production)
-app.use(express.static(path.join(__dirname, '../../frontend/dist')));
 
 const io = new Server(httpServer, {
   cors: {
-    origin: '*', // In production, restrict this to your domain
+    origin: env.appOrigin,
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 });
 
 const roomManager = new RoomManager();
 const gameEngine = new GameEngine();
 
+const parseCookie = (cookieHeader: string | undefined, name: string): string | null => {
+  if (!cookieHeader) {
+    return null;
+  }
+
+  const cookies = cookieHeader.split(';').map(part => part.trim());
+  const entry = cookies.find(item => item.startsWith(`${name}=`));
+  if (!entry) {
+    return null;
+  }
+
+  return entry.slice(name.length + 1);
+};
+
+io.use(async (socket, next) => {
+  try {
+    const sid = parseCookie(socket.handshake.headers.cookie, 'sid');
+    const identityFromSession = sid ? await sharedSessionRepository.get(sid) : null;
+
+    const identity: SessionIdentity = identityFromSession || {
+      sessionId: sid || randomUUID(),
+      guestId: randomUUID(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    socket.data.identity = identity;
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
+});
+
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
+  const socketIdentity = socket.data.identity as SessionIdentity | undefined;
+  const identityId = socketIdentity?.userId
+    ? `user:${socketIdentity.userId}`
+    : `guest:${socketIdentity?.guestId || socket.id}`;
+  const defaultName = socketIdentity?.displayName
+    || `Guest-${(socketIdentity?.guestId || socket.id).slice(0, 4).toUpperCase()}`;
 
   /**
    * Create a new room
    */
-  socket.on('create-room', ({ playerName }: { playerName: string }) => {
+  socket.on('create-room', ({ playerName }: { playerName?: string }) => {
     try {
-      const room = roomManager.createRoom(socket.id, playerName);
+      const resolvedName = playerName?.trim() || defaultName;
+      const room = roomManager.createRoom(socket.id, resolvedName, { identityId });
 
       // Initialize game
       gameEngine.initGame(room.id);
@@ -50,7 +88,7 @@ io.on('connection', (socket) => {
         gameState: gameEngine.getGameState(room.id),
       });
 
-      console.log(`Room ${room.id} created by ${playerName}`);
+      console.log(`Room ${room.id} created by ${resolvedName}`);
     } catch (error) {
       socket.emit('error', {
         message: error instanceof Error ? error.message : 'Failed to create room',
@@ -61,9 +99,10 @@ io.on('connection', (socket) => {
   /**
    * Join an existing room
    */
-  socket.on('join-room', ({ roomId, playerName }: { roomId: string; playerName: string }) => {
+  socket.on('join-room', ({ roomId, playerName }: { roomId: string; playerName?: string }) => {
     try {
-      const room = roomManager.joinRoom(roomId, socket.id, playerName);
+      const resolvedName = playerName?.trim() || defaultName;
+      const room = roomManager.joinRoom(roomId, socket.id, resolvedName, { identityId });
       const player = roomManager.getPlayer(roomId, socket.id);
 
       if (!player) {
@@ -101,7 +140,7 @@ io.on('connection', (socket) => {
         });
       }
 
-      console.log(`${playerName} joined room ${roomId} as ${player.role} (${player.color || 'spectator'})`);
+      console.log(`${resolvedName} joined room ${roomId} as ${player.role} (${player.color || 'spectator'})`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to join room';
       let errorCode = 'JOIN_ERROR';
@@ -256,17 +295,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Serve React app for all other routes (for production)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
-});
-
-const PORT = process.env.PORT || 3001;
+const PORT = env.port;
 
 httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

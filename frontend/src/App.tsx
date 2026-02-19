@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useSocket } from './useSocket';
+import { useAuthIdentity } from './auth/useAuthIdentity';
+import { useMagicLinkVerification } from './auth/useMagicLinkVerification';
 import { LandingPage } from './LandingPage';
 import { GameBoard } from './GameBoard';
-import { RoomData, Player, GameState, Color, RoomStatus } from './types';
+import type { RoomData, Player, GameState, Color, RoomStatus } from './types';
 
 function App() {
   const { socket, connected } = useSocket();
+  const { identity, loading: identityLoading, refreshIdentity } = useAuthIdentity();
+  const {
+    status: verificationStatus,
+    error: verificationError,
+  } = useMagicLinkVerification({ onVerified: refreshIdentity });
   const [inGame, setInGame] = useState(false);
   const [roomData, setRoomData] = useState<RoomData | null>(null);
 
@@ -47,7 +54,7 @@ function App() {
     };
   }, [socket]);
 
-  if (!connected) {
+  if (!connected || identityLoading) {
     return (
       <div style={styles.loading}>
         <h2>Connecting to server...</h2>
@@ -60,6 +67,10 @@ function App() {
       <LandingPage
         socket={socket}
         onRoomJoined={() => setInGame(true)}
+        defaultPlayerName={identity?.displayName}
+        identityType={identity?.identityType}
+        verificationStatus={verificationStatus}
+        verificationError={verificationError}
       />
     );
   }

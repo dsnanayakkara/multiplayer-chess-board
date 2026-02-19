@@ -5,6 +5,7 @@ export type GameResult = 'checkmate' | 'stalemate' | 'draw' | 'resignation';
 
 export interface Player {
   id: string;           // socket.id
+  identityId: string;   // stable identity (guest:<id> or user:<id>)
   name: string;         // display name
   color: Color | null;  // assigned color (white or black)
   role: PlayerRole;     // player or spectator

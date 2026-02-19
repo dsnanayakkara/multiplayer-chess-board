@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Chessboard } from 'react-chessboard';
-import { Socket } from 'socket.io-client';
-import { Player, GameState, Color, RoomStatus, GameResult } from './types';
+import type { Socket } from 'socket.io-client';
+import type { Player, GameState, Color, RoomStatus, GameResult } from './types';
 
 interface GameBoardProps {
   socket: Socket | null;
@@ -19,7 +19,6 @@ export const GameBoard = ({ socket, roomId, players, myColor, gameState, status 
   const [gameStatus, setGameStatus] = useState<RoomStatus>(status);
   const [gameResult, setGameResult] = useState<{ result: GameResult; winner: Color | null } | null>(null);
   const [error, setError] = useState('');
-  const [lastMove, setLastMove] = useState<{ from: string; to: string } | undefined>(gameState.lastMove);
 
   useEffect(() => {
     if (!socket) return;
@@ -35,7 +34,6 @@ export const GameBoard = ({ socket, roomId, players, myColor, gameState, status 
     socket.on('move-made', (data: { gameState: GameState; playerName: string }) => {
       setFen(data.gameState.fen);
       setCurrentTurn(data.gameState.currentTurn);
-      setLastMove(data.gameState.lastMove);
       setError('');
     });
 
@@ -74,7 +72,15 @@ export const GameBoard = ({ socket, roomId, players, myColor, gameState, status 
     };
   }, [socket]);
 
-  const handlePieceDrop = (sourceSquare: string, targetSquare: string, piece: string): boolean => {
+  const handlePieceDrop = ({
+    sourceSquare,
+    targetSquare,
+    piece,
+  }: {
+    sourceSquare: string;
+    targetSquare: string | null;
+    piece: { pieceType: string };
+  }): boolean => {
     if (!socket || gameStatus !== 'active') {
       return false;
     }
@@ -85,8 +91,14 @@ export const GameBoard = ({ socket, roomId, players, myColor, gameState, status 
       return false;
     }
 
+    if (!targetSquare) {
+      return false;
+    }
+
     // Check for pawn promotion
-    const promotion = piece[1]?.toLowerCase() === 'p' && (targetSquare[1] === '8' || targetSquare[1] === '1')
+    const pieceType = piece.pieceType.toLowerCase();
+    const isPawn = pieceType.endsWith('p');
+    const promotion = isPawn && (targetSquare[1] === '8' || targetSquare[1] === '1')
       ? 'q' // Auto-promote to queen for simplicity
       : undefined;
 
@@ -197,16 +209,18 @@ export const GameBoard = ({ socket, roomId, players, myColor, gameState, status 
 
         <div style={styles.board}>
           <Chessboard
-            position={fen}
-            onPieceDrop={handlePieceDrop}
-            boardOrientation={boardOrientation}
-            areArrowsAllowed={false}
-            customBoardStyle={{
-              borderRadius: '8px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+            options={{
+              position: fen,
+              onPieceDrop: handlePieceDrop,
+              boardOrientation,
+              allowDrawingArrows: false,
+              boardStyle: {
+                borderRadius: '8px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+              },
+              darkSquareStyle: { backgroundColor: '#769656' },
+              lightSquareStyle: { backgroundColor: '#eeeed2' },
             }}
-            customDarkSquareStyle={{ backgroundColor: '#769656' }}
-            customLightSquareStyle={{ backgroundColor: '#eeeed2' }}
           />
         </div>
 
