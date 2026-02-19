@@ -78,7 +78,31 @@ App runs on http://localhost:5173
 ✅ Checkmate/stalemate/draw detection
 ✅ Resignation support
 ✅ Spectator mode (3+ players)
+✅ Guest-first identity sessions
+✅ Magic-link account upgrade flow
+✅ Socket identity binding (guest/account)
+✅ CSRF protection for auth mutations
+✅ Auth rate limiting for magic-link requests
 ✅ Clean, responsive UI
+
+## Security Features
+
+- Cookie-based guest/account sessions (`httpOnly`, `sameSite=lax`, `secure` in production)
+- CSRF token issuance and enforcement for protected auth operations
+- Route-level rate limiting for magic-link start endpoint
+- Magic-link verification and one-time session upgrade flow
+- Server-side identity resolution for Socket.IO connections
+
+## Roadmap / TODO
+
+- [x] User authentication and accounts (guest + magic-link upgrade)
+- [ ] Persistent game history and replay
+- [ ] Time controls / chess clocks
+- [ ] Player ratings / ELO system
+- [ ] Matchmaking
+- [ ] In-game chat
+- [ ] Reconnection handling and robust resume flow
+- [ ] Mobile native apps
 
 ## Tech Stack
 
