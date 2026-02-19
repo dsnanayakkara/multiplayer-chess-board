@@ -1,20 +1,12 @@
-import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import cors from 'cors';
-import path from 'path';
 import { RoomManager } from './RoomManager';
 import { GameEngine } from './GameEngine';
 import { MoveRequest } from './types';
+import { createApp } from './app';
 
-const app = express();
+const app = createApp();
 const httpServer = createServer(app);
-
-// CORS for development
-app.use(cors());
-
-// Serve static files from frontend build (for production)
-app.use(express.static(path.join(__dirname, '../../frontend/dist')));
 
 const io = new Server(httpServer, {
   cors: {
@@ -254,16 +246,6 @@ io.on('connection', (socket) => {
       }
     }
   });
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Serve React app for all other routes (for production)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
 });
 
 const PORT = process.env.PORT || 3001;
