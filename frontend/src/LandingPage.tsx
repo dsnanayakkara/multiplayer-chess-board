@@ -1,13 +1,25 @@
 import { useState, useEffect } from 'react';
 import { Socket } from 'socket.io-client';
+import { UpgradeAccountPanel } from './auth/UpgradeAccountPanel';
+import type { IdentityType } from './auth/types';
 
 interface LandingPageProps {
   socket: Socket | null;
   onRoomJoined: () => void;
   defaultPlayerName?: string;
+  identityType?: IdentityType;
+  verificationStatus?: 'idle' | 'verifying' | 'verified' | 'error';
+  verificationError?: string | null;
 }
 
-export const LandingPage = ({ socket, onRoomJoined, defaultPlayerName }: LandingPageProps) => {
+export const LandingPage = ({
+  socket,
+  onRoomJoined,
+  defaultPlayerName,
+  identityType,
+  verificationStatus = 'idle',
+  verificationError = null,
+}: LandingPageProps) => {
   const [playerName, setPlayerName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState('');
@@ -97,6 +109,19 @@ export const LandingPage = ({ socket, onRoomJoined, defaultPlayerName }: Landing
       <div style={styles.card}>
         <h1 style={styles.title}>Multiplayer Chess</h1>
         <p style={styles.subtitle}>Play chess online with friends!</p>
+        {verificationStatus === 'verifying' ? (
+          <p style={{ ...styles.subtitle, marginBottom: '12px' }}>Verifying magic link...</p>
+        ) : null}
+        {verificationStatus === 'verified' ? (
+          <p style={{ ...styles.subtitle, marginBottom: '12px', color: '#2e7d32' }}>
+            Account verified. You are signed in.
+          </p>
+        ) : null}
+        {verificationStatus === 'error' ? (
+          <p style={{ ...styles.subtitle, marginBottom: '12px', color: '#c33' }}>
+            {verificationError || 'Magic link verification failed'}
+          </p>
+        ) : null}
 
         <div style={styles.form}>
           <input
@@ -153,6 +178,9 @@ export const LandingPage = ({ socket, onRoomJoined, defaultPlayerName }: Landing
             <li>Take turns making moves</li>
             <li>Spectators (3+) can watch the game</li>
           </ul>
+          {identityType !== 'account' ? (
+            <UpgradeAccountPanel onSent={() => setError('')} />
+          ) : null}
         </div>
       </div>
     </div>
