@@ -1,12 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import { AppEnv, parseEnv } from './config/env';
+import { securityConfig } from './config/security';
 
-export const createApp = () => {
+export const createApp = (env: AppEnv = parseEnv(process.env)) => {
   const app = express();
+  const security = securityConfig(env);
 
   // CORS for development
-  app.use(cors());
+  app.use(cors(security.cors));
 
   app.use(express.json());
 

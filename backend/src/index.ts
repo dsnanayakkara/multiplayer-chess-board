@@ -4,14 +4,17 @@ import { RoomManager } from './RoomManager';
 import { GameEngine } from './GameEngine';
 import { MoveRequest } from './types';
 import { createApp } from './app';
+import { parseEnv } from './config/env';
 
-const app = createApp();
+const env = parseEnv(process.env);
+const app = createApp(env);
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: '*', // In production, restrict this to your domain
+    origin: env.appOrigin,
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 });
 
@@ -248,7 +251,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = env.port;
 
 httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
