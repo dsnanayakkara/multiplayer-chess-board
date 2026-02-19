@@ -8,7 +8,9 @@ export const useSocket = () => {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const socketInstance = io(SOCKET_URL);
+    const socketInstance = io(SOCKET_URL, {
+      withCredentials: true,
+    });
 
     socketInstance.on('connect', () => {
       console.log('Connected to server');

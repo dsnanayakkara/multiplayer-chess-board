@@ -4,13 +4,22 @@ import { Socket } from 'socket.io-client';
 interface LandingPageProps {
   socket: Socket | null;
   onRoomJoined: () => void;
+  defaultPlayerName?: string;
 }
 
-export const LandingPage = ({ socket, onRoomJoined }: LandingPageProps) => {
+export const LandingPage = ({ socket, onRoomJoined, defaultPlayerName }: LandingPageProps) => {
   const [playerName, setPlayerName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!defaultPlayerName || playerName.trim()) {
+      return;
+    }
+
+    setPlayerName(defaultPlayerName);
+  }, [defaultPlayerName, playerName]);
 
   useEffect(() => {
     if (!socket) return;
