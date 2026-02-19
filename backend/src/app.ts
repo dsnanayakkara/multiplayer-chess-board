@@ -3,6 +3,8 @@ import cors from 'cors';
 import path from 'path';
 import { AppEnv, parseEnv } from './config/env';
 import { securityConfig } from './config/security';
+import { sessionMiddleware } from './auth/session/sessionMiddleware';
+import { meRoute } from './auth/routes/meRoute';
 
 export const createApp = (env: AppEnv = parseEnv(process.env)) => {
   const app = express();
@@ -12,6 +14,8 @@ export const createApp = (env: AppEnv = parseEnv(process.env)) => {
   app.use(cors(security.cors));
 
   app.use(express.json());
+  app.use(sessionMiddleware());
+  app.use('/api/auth', meRoute);
 
   // Serve static files from frontend build (for production)
   app.use(express.static(path.join(__dirname, '../../frontend/dist')));
