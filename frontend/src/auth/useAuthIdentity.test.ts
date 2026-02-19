@@ -21,7 +21,10 @@ describe('useAuthIdentity', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/auth/me', { credentials: 'include' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('/api/auth/me');
+    expect(options).toEqual({ credentials: 'include' });
     expect(result.current.identity?.identityType).toBe('guest');
 
     vi.unstubAllGlobals();

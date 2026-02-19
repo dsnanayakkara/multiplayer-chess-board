@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { apiUrl } from './authApi';
 
 interface UpgradeAccountPanelProps {
   onSent: () => void;
@@ -16,7 +17,7 @@ export const UpgradeAccountPanel = ({ onSent }: UpgradeAccountPanelProps) => {
     setSuccess('');
 
     try {
-      const response = await fetch('/api/auth/magic-link/start', {
+      const response = await fetch(apiUrl('/api/auth/magic-link/start'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         credentials: 'include',

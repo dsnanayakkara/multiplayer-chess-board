@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apiUrl } from './authApi';
 
 type VerificationStatus = 'idle' | 'verifying' | 'verified' | 'error';
 
@@ -21,7 +22,7 @@ export const useMagicLinkVerification = ({ onVerified }: UseMagicLinkVerificatio
         setStatus('verifying');
         setError(null);
 
-        const response = await fetch('/api/auth/magic-link/verify', {
+        const response = await fetch(apiUrl('/api/auth/magic-link/verify'), {
           method: 'POST',
           credentials: 'include',
           headers: { 'content-type': 'application/json' },
