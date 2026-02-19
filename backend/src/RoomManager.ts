@@ -75,7 +75,7 @@ export class RoomManager {
     }
 
     // Determine role and color
-    let color = null;
+    let color: Player['color'] = null;
     let role: 'player' | 'spectator' = 'spectator';
 
     if (room.players.length < 2) {

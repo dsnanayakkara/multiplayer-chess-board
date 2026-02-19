@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSocket } from './useSocket';
 import { LandingPage } from './LandingPage';
 import { GameBoard } from './GameBoard';
-import { RoomData, Player, GameState, Color, RoomStatus } from './types';
+import type { RoomData, Player, GameState, Color, RoomStatus } from './types';
 
 function App() {
   const { socket, connected } = useSocket();
