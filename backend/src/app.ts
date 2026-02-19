@@ -8,6 +8,7 @@ import { meRoute } from './auth/routes/meRoute';
 import { magicLinkStartRoute } from './auth/routes/magicLinkStartRoute';
 import { magicLinkVerifyRoute } from './auth/routes/magicLinkVerifyRoute';
 import { logoutRoute } from './auth/routes/logoutRoute';
+import { errorHandler } from './middleware/errorHandler';
 
 export const createApp = (env: AppEnv = parseEnv(process.env)) => {
   const app = express();
@@ -22,6 +23,7 @@ export const createApp = (env: AppEnv = parseEnv(process.env)) => {
   app.use('/api/auth', magicLinkStartRoute);
   app.use('/api/auth', magicLinkVerifyRoute);
   app.use('/api/auth', logoutRoute);
+  app.use(errorHandler);
 
   // Serve static files from frontend build (for production)
   app.use(express.static(path.join(__dirname, '../../frontend/dist')));
