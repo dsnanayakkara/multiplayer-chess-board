@@ -44,7 +44,12 @@ cd backend
 npm install
 ```
 
-3. Start development server:
+3. Create environment file:
+```bash
+cp .env.example .env
+```
+
+4. Start development server:
 ```bash
 npm run dev
 ```
@@ -112,6 +117,8 @@ concurrently "cd backend && npm run dev" "cd frontend && npm run dev"
 ```bash
 npm run dev      # Start dev server with hot reload
 npm run build    # Compile TypeScript to JavaScript
+npm run test     # Run backend test suite
+npm run db:migrate # Apply SQL migrations
 npm start        # Run compiled production build
 ```
 
@@ -119,8 +126,22 @@ npm start        # Run compiled production build
 ```bash
 npm run dev      # Start Vite dev server
 npm run build    # Build for production
+npm run test     # Run frontend test suite
 npm run preview  # Preview production build
 ```
+
+### Auth Environment Variables
+
+Backend (`backend/.env`):
+- `DATABASE_URL`
+- `REDIS_URL`
+- `SESSION_SECRET`
+- `APP_ORIGIN`
+- `PUBLIC_APP_URL`
+
+Frontend (`frontend/.env`):
+- `VITE_SOCKET_URL`
+- `VITE_API_URL`
 
 ## Architecture Overview
 
@@ -186,6 +207,13 @@ npm run preview  # Preview production build
 - `player-joined` - Another player joined
 - `player-left` - Player disconnected
 - `error` - General error message
+
+### Auth HTTP Endpoints
+- `GET /api/auth/me`
+- `GET /api/auth/csrf`
+- `POST /api/auth/magic-link/start`
+- `POST /api/auth/magic-link/verify`
+- `POST /api/auth/logout`
 
 ## Game Rules (2v2)
 
@@ -288,5 +316,4 @@ CMD ["npm", "start"]
 - Chat within the game
 - Spectator mode improvements
 - Persistent game storage
-- User authentication
 - Matchmaking / ELO ratings

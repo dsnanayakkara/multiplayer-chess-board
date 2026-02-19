@@ -19,6 +19,7 @@ cd multiplayer-chess-board
 ```bash
 cd backend
 npm install
+cp .env.example .env
 npm run dev
 ```
 Server runs on http://localhost:3001
@@ -37,6 +38,30 @@ App runs on http://localhost:5173
    - Create a room and share the code with a friend
    - First player gets white, second gets black
    - Additional players (3+) join as spectators
+
+## Environment Variables
+
+### Backend (`backend/.env`)
+
+- `PORT` - HTTP/WebSocket server port (default `3001`)
+- `APP_ORIGIN` - frontend origin allowed by CORS (e.g. `http://localhost:5173`)
+- `PUBLIC_APP_URL` - URL used to generate magic-link URLs
+- `DATABASE_URL` - PostgreSQL connection string
+- `REDIS_URL` - Redis connection string
+- `SESSION_SECRET` - session secret (required in production, 32+ chars)
+
+### Frontend (`frontend/.env`)
+
+- `VITE_SOCKET_URL` - Socket.IO backend URL (e.g. `http://localhost:3001`)
+- `VITE_API_URL` - HTTP API base URL (e.g. `http://localhost:3001`)
+
+## Auth HTTP Endpoints
+
+- `GET /api/auth/me`
+- `GET /api/auth/csrf`
+- `POST /api/auth/magic-link/start`
+- `POST /api/auth/magic-link/verify`
+- `POST /api/auth/logout`
 
 ## Documentation
 
@@ -94,10 +119,10 @@ App runs on http://localhost:5173
 - **FR-4.4**: The UI shall display the room code for sharing
 - **FR-4.5**: The UI shall show game result when the game ends
 
-#### FR-5: Session Management (POC Scope)
-- **FR-5.1**: No user authentication is required
-- **FR-5.2**: No persistent storage beyond active sessions
-- **FR-5.3**: Players are identified by display name only
+#### FR-5: Identity and Session Management
+- **FR-5.1**: Users shall be able to play as guests without registration
+- **FR-5.2**: Users shall be able to upgrade to an account via magic link
+- **FR-5.3**: Session identity shall be maintained with secure cookies
 
 ### 2. Non-Functional Requirements
 
@@ -237,7 +262,6 @@ All clients update board display
 
 The following features are explicitly out of scope for this POC:
 
-- User authentication and accounts
 - Persistent game history or database
 - Move history replay
 - Time controls / chess clocks
