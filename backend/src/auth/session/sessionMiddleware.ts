@@ -12,7 +12,7 @@ export interface SessionService {
   logoutToGuest(req: Request, res: Response): Promise<void>;
 }
 
-const defaultRepository: SessionRepository =
+export const sharedSessionRepository: SessionRepository =
   process.env.NODE_ENV === 'test'
     ? new InMemorySessionRepository()
     : new RedisSessionRepository();
@@ -41,7 +41,7 @@ const writeSessionCookie = (res: Response, sessionId: string) => {
   });
 };
 
-export const sessionMiddleware = (sessionRepository: SessionRepository = defaultRepository) => {
+export const sessionMiddleware = (sessionRepository: SessionRepository = sharedSessionRepository) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const now = Date.now();

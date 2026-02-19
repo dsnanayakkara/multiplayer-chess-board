@@ -1,5 +1,9 @@
 import { Room, Player, RoomStatus } from './types';
 
+interface IdentityContext {
+  identityId: string;
+}
+
 export class RoomManager {
   private rooms: Map<string, Room> = new Map();
   private pendingDeletions: Map<string, NodeJS.Timeout> = new Map();
@@ -24,11 +28,12 @@ export class RoomManager {
   /**
    * Create a new room with the host player
    */
-  createRoom(playerId: string, playerName: string): Room {
+  createRoom(playerId: string, playerName: string, identity: IdentityContext): Room {
     const roomId = this.generateRoomCode();
 
     const host: Player = {
       id: playerId,
+      identityId: identity.identityId,
       name: playerName,
       color: 'white', // First player gets white
       role: 'player',
@@ -50,7 +55,7 @@ export class RoomManager {
   /**
    * Join an existing room
    */
-  joinRoom(roomId: string, playerId: string, playerName: string): Room {
+  joinRoom(roomId: string, playerId: string, playerName: string, identity: IdentityContext): Room {
     const room = this.rooms.get(roomId);
 
     if (!room) {
@@ -69,8 +74,9 @@ export class RoomManager {
     }
 
     // Check if player already in room (reconnection scenario)
-    const existingPlayer = room.players.find(p => p.id === playerId);
+    const existingPlayer = room.players.find(p => p.identityId === identity.identityId);
     if (existingPlayer) {
+      existingPlayer.id = playerId;
       return room;
     }
 
@@ -86,6 +92,7 @@ export class RoomManager {
 
     const newPlayer: Player = {
       id: playerId,
+      identityId: identity.identityId,
       name: playerName,
       color,
       role,
