@@ -22,6 +22,7 @@ export type VerifyResult =
 
 export class MagicLinkService {
   private tokens = new Map<string, MagicLinkRecord>();
+  private latestTokenByEmail = new Map<string, string>();
   private readonly ttlMs: number;
   private readonly appUrl: string;
   private readonly emailSender: EmailSender;
@@ -43,6 +44,7 @@ export class MagicLinkService {
       requestedIp,
       userAgent,
     });
+    this.latestTokenByEmail.set(normalizedEmail, token);
 
     const url = `${this.appUrl}/?token=${encodeURIComponent(token)}`;
     await this.emailSender.sendMagicLink(normalizedEmail, url);
@@ -72,6 +74,11 @@ export class MagicLinkService {
         displayName: record.email.split('@')[0] || 'Player',
       },
     };
+  }
+
+  peekLatestTokenForEmail(email: string): string | null {
+    const normalizedEmail = email.trim().toLowerCase();
+    return this.latestTokenByEmail.get(normalizedEmail) || null;
   }
 }
 
